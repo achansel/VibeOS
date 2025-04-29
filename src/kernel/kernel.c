@@ -59,9 +59,10 @@ void kernel_main(uint32_t magic __attribute__((unused)), void* mb_info __attribu
     terminal_writestring("Hello from kernel_main()\n");
     terminal_writestring("--- this message was sent from the std vga device ---\n");
     terminal_writestring("and thats a great boot log\n");
+    terminal_writestring("Press 1, 2, or 3 to switch between screens\n");
     uart_write_string("Welcome message printed\n");
     
-    // Initialize command buffer
+    // Initialize command
     command_length = 0;
     uart_write_string("Command buffer initialized\n");
     
@@ -77,6 +78,17 @@ void kernel_main(uint32_t magic __attribute__((unused)), void* mb_info __attribu
             
             if (!keyboard_is_released(scancode)) {  // Only process key press, not release
                 char ascii = keyboard_scancode_to_ascii(scancode);
+                
+                // Handle screen switching
+                if (ascii >= '1' && ascii <= '3') {
+                    uint8_t screen_num = ascii - '1';
+                    uart_write_string("Screen switch key pressed: ");
+                    uart_write_hex(screen_num);
+                    uart_write_string("\n");
+                    terminal_switch_screen(screen_num);
+                    terminal_writestring("> ");
+                    continue;
+                }
                 
                 // Handle backspace
                 if (ascii == '\b' && command_length > 0) {
