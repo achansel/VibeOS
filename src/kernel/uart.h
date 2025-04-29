@@ -10,5 +10,6 @@
 void uart_init(void);
 void uart_write_char(char c);
 void uart_write_string(const char* str);
+void uart_write_hex(uint32_t value);
 
 #endif 

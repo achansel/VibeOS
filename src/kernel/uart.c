@@ -35,4 +35,14 @@ void uart_init(void) {
     
     // Enable interrupts
     outb(UART_PORT + 4, 0x0B);
+}
+
+void uart_write_hex(uint32_t value) {
+    const char hex_chars[] = "0123456789ABCDEF";
+    uart_write_string("0x");
+    
+    for (int i = 7; i >= 0; i--) {
+        uint8_t nibble = (value >> (i * 4)) & 0xF;
+        uart_write_char(hex_chars[nibble]);
+    }
 } 

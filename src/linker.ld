@@ -9,36 +9,38 @@ MEMORY {
 }
 
 SECTIONS {
-    /* VGA buffer must be at 0xB8000 */
-    .vga_buffer 0xB8000 : {
-        *(.vga_buffer)
-    } > lowmem
-
     /* Kernel sections start at 1MB */
     . = 1M;
 
     .boot : {
         *(.multiboot)
-    } > kernel
+    } > kernel :text
 
     .text : {
         *(.text)
-    } > kernel
+    } > kernel :text
 
     .rodata : {
         *(.rodata)
-    } > kernel
+    } > kernel :data
 
     .data : {
         *(.data)
-    } > kernel
+    } > kernel :data
 
     .bss : {
         *(COMMON)
         *(.bss)
-    } > kernel
+    } > kernel :bss
 
     /* End of kernel */
     . = ALIGN(4K);
     _kernel_end = .;
+}
+
+/* Memory permissions */
+PHDRS {
+    text PT_LOAD FLAGS(5);  /* R-X */
+    data PT_LOAD FLAGS(6);  /* RW- */
+    bss PT_LOAD FLAGS(6);   /* RW- */
 } 

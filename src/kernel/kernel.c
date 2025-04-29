@@ -33,7 +33,6 @@ void handle_command(void) {
     } else {
         terminal_writestring("\nUnknown command. Available commands:\n");
         terminal_writestring("clear - Clear the screen\n");
-        terminal_writestring("Press 1 or 2 to switch screens\n");
     }
     
     command_length = 0;
@@ -60,7 +59,6 @@ void kernel_main(uint32_t magic __attribute__((unused)), void* mb_info __attribu
     terminal_writestring("Hello from kernel_main()\n");
     terminal_writestring("--- this message was sent from the std vga device ---\n");
     terminal_writestring("and thats a great boot log\n");
-    terminal_writestring("Press 1 or 2 to switch between screens\n");
     uart_write_string("Welcome message printed\n");
     
     // Initialize command buffer
@@ -79,17 +77,6 @@ void kernel_main(uint32_t magic __attribute__((unused)), void* mb_info __attribu
             
             if (!keyboard_is_released(scancode)) {  // Only process key press, not release
                 char ascii = keyboard_scancode_to_ascii(scancode);
-                
-                // Handle screen switching
-                if (ascii == '1') {
-                    switch_screen(0);
-                    terminal_writestring("\nSwitched to screen 1\n> ");
-                    continue;
-                } else if (ascii == '2') {
-                    switch_screen(1);
-                    terminal_writestring("\nSwitched to screen 2\n> ");
-                    continue;
-                }
                 
                 // Handle backspace
                 if (ascii == '\b' && command_length > 0) {

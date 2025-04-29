@@ -8,7 +8,7 @@
 #define VGA_WIDTH 80
 #define VGA_HEIGHT 25
 #define VGA_ADDRESS 0xB8000
-#define NUM_SCREENS 2
+#define NUM_SCREENS 3
 
 // VGA color constants
 enum vga_color {
@@ -38,7 +38,7 @@ void terminal_write(const char* data, size_t size);
 void terminal_writestring(const char* data);
 void terminal_clear(void);
 void terminal_setcursor(size_t x, size_t y);
-void switch_screen(size_t screen_num);
+void terminal_switch_screen(uint8_t screen_num);
 
 // VGA helper functions
 static inline uint8_t vga_entry_color(enum vga_color fg, enum vga_color bg) {
