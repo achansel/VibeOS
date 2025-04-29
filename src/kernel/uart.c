@@ -3,7 +3,7 @@
 
 #define COM1 0x3F8
 
-static void uart_putc(char c) {
+void uart_putc(char c) {
     // Wait until transmitter is ready
     while ((inb(COM1 + 5) & 0x20) == 0);
     outb(COM1, c);

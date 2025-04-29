@@ -106,22 +106,47 @@ void terminal_setcolor(uint8_t color) {
 }
 
 void terminal_scroll(void) {
-    // Move all lines up by one
+    uart_puts("DEBUG: Starting terminal_scroll\n");
+    uart_puts("DEBUG: Current row: ");
+    char row_str[3] = {0};
+    row_str[0] = '0' + (terminal_row / 10);
+    row_str[1] = '0' + (terminal_row % 10);
+    uart_puts(row_str);
+    uart_puts("\n");
+    
+    // Verify VGA buffer is accessible
+    volatile uint16_t* test_ptr = (volatile uint16_t*)vga_buffer;
+    uint16_t test_value = vga_entry('X', terminal_color);
+    test_ptr[0] = test_value;
+    if (test_ptr[0] != test_value) {
+        uart_puts("ERROR: VGA buffer not writable in scroll\n");
+        asm volatile("hlt");
+    }
+    
+    // Move all lines up by one with bounds checking
     for (size_t y = 0; y < VGA_HEIGHT - 1; y++) {
         for (size_t x = 0; x < VGA_WIDTH; x++) {
             const size_t current = y * VGA_WIDTH + x;
             const size_t next = (y + 1) * VGA_WIDTH + x;
-            vga_buffer[current] = vga_buffer[next];
+            if (current < VGA_WIDTH * VGA_HEIGHT && next < VGA_WIDTH * VGA_HEIGHT) {
+                test_ptr[current] = test_ptr[next];
+            }
         }
     }
     
-    // Clear the last line
+    // Clear the last line with bounds checking
     for (size_t x = 0; x < VGA_WIDTH; x++) {
         const size_t index = (VGA_HEIGHT - 1) * VGA_WIDTH + x;
-        vga_buffer[index] = vga_entry(' ', terminal_color);
+        if (index < VGA_WIDTH * VGA_HEIGHT) {
+            test_ptr[index] = vga_entry(' ', terminal_color);
+        }
     }
     
+    // Ensure terminal_row is within bounds
     terminal_row = VGA_HEIGHT - 1;
+    terminal_column = 0;
+    
+    uart_puts("DEBUG: Terminal scrolled successfully\n");
 }
 
 void terminal_clear(void) {
@@ -178,19 +203,31 @@ void terminal_initialize(void) {
 }
 
 void terminal_putchar(char c) {
+    uart_puts("DEBUG: terminal_putchar: ");
+    uart_putc(c);
+    uart_puts("\n");
+    
+    // Ensure terminal_row is within bounds before any operation
+    if (terminal_row >= VGA_HEIGHT) {
+        uart_puts("DEBUG: Row out of bounds, scrolling\n");
+        terminal_scroll();
+    }
+    
     if (c == '\n') {
+        uart_puts("DEBUG: Handling newline\n");
         terminal_column = 0;
-        if (++terminal_row == VGA_HEIGHT) {
+        if (++terminal_row >= VGA_HEIGHT) {
             terminal_scroll();
         }
         return;
     }
     
     if (c == '\t') {
+        uart_puts("DEBUG: Handling tab\n");
         terminal_column = (terminal_column + 8) & ~(8 - 1);
         if (terminal_column >= VGA_WIDTH) {
             terminal_column = 0;
-            if (++terminal_row == VGA_HEIGHT) {
+            if (++terminal_row >= VGA_HEIGHT) {
                 terminal_scroll();
             }
         }
@@ -198,6 +235,7 @@ void terminal_putchar(char c) {
     }
     
     if (c == '\b') {
+        uart_puts("DEBUG: Handling backspace\n");
         if (terminal_column > 0) {
             terminal_column--;
         } else if (terminal_row > 0) {
@@ -205,16 +243,22 @@ void terminal_putchar(char c) {
             terminal_column = VGA_WIDTH - 1;
         }
         const size_t index = terminal_row * VGA_WIDTH + terminal_column;
-        vga_buffer[index] = vga_entry(' ', terminal_color);
+        if (index < VGA_WIDTH * VGA_HEIGHT) {
+            volatile uint16_t* test_ptr = (volatile uint16_t*)vga_buffer;
+            test_ptr[index] = vga_entry(' ', terminal_color);
+        }
         return;
     }
 
     const size_t index = terminal_row * VGA_WIDTH + terminal_column;
-    vga_buffer[index] = vga_entry(c, terminal_color);
+    if (index < VGA_WIDTH * VGA_HEIGHT) {
+        volatile uint16_t* test_ptr = (volatile uint16_t*)vga_buffer;
+        test_ptr[index] = vga_entry(c, terminal_color);
+    }
 
-    if (++terminal_column == VGA_WIDTH) {
+    if (++terminal_column >= VGA_WIDTH) {
         terminal_column = 0;
-        if (++terminal_row == VGA_HEIGHT) {
+        if (++terminal_row >= VGA_HEIGHT) {
             terminal_scroll();
         }
     }
@@ -246,6 +290,7 @@ void terminal_setcursor(size_t x, size_t y) {
 }
 
 void handle_command(void) {
+    uart_puts("DEBUG: Starting handle_command\n");
     command_buffer[command_length] = '\0';
     
     if (strlen(command_buffer) == 5 && 
@@ -254,13 +299,16 @@ void handle_command(void) {
         command_buffer[2] == 'e' &&
         command_buffer[3] == 'a' &&
         command_buffer[4] == 'r') {
+        uart_puts("DEBUG: Executing clear command\n");
         terminal_clear();
     } else {
+        uart_puts("DEBUG: Unknown command\n");
         terminal_writestring("\nUnknown command. Available commands:\n");
         terminal_writestring("clear - Clear the screen\n");
     }
     
     command_length = 0;
+    uart_puts("DEBUG: Command handled\n");
 }
 
 void kernel_main(uint32_t magic __attribute__((unused)), void* mb_info __attribute__((unused))) {
