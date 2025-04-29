@@ -44,6 +44,14 @@ $(OBJ_DIR):
 $(OBJ_DIR)/kernel/kernel.o: src/kernel/kernel.c | $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
+# Compile terminal
+$(OBJ_DIR)/kernel/terminal.o: src/kernel/terminal.c | $(OBJ_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Compile keyboard
+$(OBJ_DIR)/kernel/keyboard.o: src/kernel/keyboard.c | $(OBJ_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
 # Compile UART
 $(OBJ_DIR)/kernel/uart.o: src/kernel/uart.c | $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -53,7 +61,7 @@ $(OBJ_DIR)/boot/boot.o: src/boot/boot.asm | $(OBJ_DIR)
 	$(ASM) $(ASFLAGS) $< -o $@
 
 # Link kernel
-$(KERNEL): $(OBJ_DIR)/kernel/kernel.o $(OBJ_DIR)/kernel/uart.o $(OBJ_DIR)/boot/boot.o
+$(KERNEL): $(OBJ_DIR)/kernel/kernel.o $(OBJ_DIR)/kernel/terminal.o $(OBJ_DIR)/kernel/keyboard.o $(OBJ_DIR)/kernel/uart.o $(OBJ_DIR)/boot/boot.o
 	$(LD) $(LDFLAGS) -o $@ $^
 
 # Create ISO directory structure
