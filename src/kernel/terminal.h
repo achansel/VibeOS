@@ -38,6 +38,9 @@ void terminal_write(const char* data, size_t size);
 void terminal_writestring(const char* data);
 void terminal_clear(void);
 void terminal_switch_screen(uint8_t screen_num);
+void terminal_disable_cursor(void);
+void terminal_enable_cursor(void);
+void terminal_update_cursor(void);
 
 // VGA helper functions
 static inline uint8_t vga_entry_color(enum vga_color fg, enum vga_color bg) {

@@ -51,6 +51,9 @@ void kernel_main(uint32_t magic __attribute__((unused)), void* mb_info __attribu
     terminal_initialize();
     uart_write_string("Terminal initialized\n");
     
+    // Enable cursor
+    terminal_enable_cursor();
+    
     // Set terminal color
     terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK));
     uart_write_string("Terminal color set\n");
@@ -82,11 +85,7 @@ void kernel_main(uint32_t magic __attribute__((unused)), void* mb_info __attribu
                 // Handle screen switching
                 if (ascii >= '1' && ascii <= '3') {
                     uint8_t screen_num = ascii - '1';
-                    uart_write_string("Screen switch key pressed: ");
-                    uart_write_hex(screen_num);
-                    uart_write_string("\n");
                     terminal_switch_screen(screen_num);
-                    terminal_writestring("> ");
                     continue;
                 }
                 

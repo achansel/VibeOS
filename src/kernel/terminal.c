@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 #include "terminal.h"
 #include "io.h"
 #include "uart.h"
@@ -15,6 +16,7 @@ typedef struct {
     size_t row;
     size_t column;
     uint8_t color;
+    bool prompt_initialized;
 } screen_t;
 
 // Global screen state
@@ -88,6 +90,7 @@ void terminal_initialize(void) {
         screens[i].row = 0;
         screens[i].column = 0;
         screens[i].color = vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
+        screens[i].prompt_initialized = false;
         
         // Initialize VGA buffer for this screen
         for (size_t y = 0; y < VGA_HEIGHT; y++) {
@@ -99,8 +102,69 @@ void terminal_initialize(void) {
         }
     }
     
-    // Set current screen to 0
+    // Set current screen to 0 and initialize its prompt
     current_screen = 0;
+    screens[0].prompt_initialized = true;
+    
+    // Enable and position cursor
+    terminal_enable_cursor();
+    terminal_update_cursor();
+}
+
+void terminal_disable_cursor(void) {
+    // VGA cursor control ports
+    const uint16_t VGA_CTRL_REGISTER = 0x3D4;
+    const uint16_t VGA_DATA_REGISTER = 0x3D5;
+    
+    // Disable cursor by setting the maximum scan line to 0
+    outb(VGA_CTRL_REGISTER, 0x0A);
+    outb(VGA_DATA_REGISTER, 0x20);
+    
+    // Small delay to ensure register write completes
+    for (volatile int i = 0; i < 100; i++);
+}
+
+void terminal_enable_cursor(void) {
+    // VGA cursor control ports
+    const uint16_t VGA_CTRL_REGISTER = 0x3D4;
+    const uint16_t VGA_DATA_REGISTER = 0x3D5;
+    
+    // Set cursor start line to 0 (top of character)
+    outb(VGA_CTRL_REGISTER, 0x0A);
+    outb(VGA_DATA_REGISTER, 0x00);
+    
+    // Small delay to ensure register write completes
+    for (volatile int i = 0; i < 100; i++);
+    
+    // Set cursor end line to 15 (bottom of character)
+    outb(VGA_CTRL_REGISTER, 0x0B);
+    outb(VGA_DATA_REGISTER, 0x0F);
+    
+    // Small delay to ensure register write completes
+    for (volatile int i = 0; i < 100; i++);
+}
+
+void terminal_update_cursor(void) {
+    // VGA cursor control ports
+    const uint16_t VGA_CTRL_REGISTER = 0x3D4;
+    const uint16_t VGA_DATA_REGISTER = 0x3D5;
+    
+    screen_t* screen = get_current_screen();
+    uint16_t pos = screen->row * VGA_WIDTH + screen->column;
+    
+    // Update cursor position (low byte)
+    outb(VGA_CTRL_REGISTER, 0x0F);
+    outb(VGA_DATA_REGISTER, (uint8_t)(pos & 0xFF));
+    
+    // Small delay to ensure register write completes
+    for (volatile int i = 0; i < 100; i++);
+    
+    // Update cursor position (high byte)
+    outb(VGA_CTRL_REGISTER, 0x0E);
+    outb(VGA_DATA_REGISTER, (uint8_t)((pos >> 8) & 0xFF));
+    
+    // Small delay to ensure register write completes
+    for (volatile int i = 0; i < 100; i++);
 }
 
 void terminal_putchar(char c) {
@@ -111,6 +175,7 @@ void terminal_putchar(char c) {
         if (++screen->row == VGA_HEIGHT) {
             terminal_scroll();
         }
+        terminal_update_cursor();
         return;
     }
     
@@ -122,6 +187,7 @@ void terminal_putchar(char c) {
                 terminal_scroll();
             }
         }
+        terminal_update_cursor();
         return;
     }
     
@@ -135,6 +201,7 @@ void terminal_putchar(char c) {
         const size_t index = screen->row * VGA_WIDTH + screen->column;
         screen->buffer[index] = vga_entry(' ', screen->color);
         safe_vga_write(index, screen->buffer[index]);
+        terminal_update_cursor();
         return;
     }
 
@@ -148,6 +215,7 @@ void terminal_putchar(char c) {
             terminal_scroll();
         }
     }
+    terminal_update_cursor();
 }
 
 void terminal_write(const char* data, size_t size) {
@@ -185,4 +253,13 @@ void terminal_switch_screen(uint8_t screen_num) {
     for (size_t i = 0; i < VGA_HEIGHT * VGA_WIDTH; i++) {
         safe_vga_write(i, new_screen->buffer[i]);
     }
+    
+    // Initialize prompt if this is the first time switching to this screen
+    if (!new_screen->prompt_initialized) {
+        new_screen->prompt_initialized = true;
+        terminal_writestring("> ");
+    }
+    
+    // Update cursor position for the new screen
+    terminal_update_cursor();
 } 
