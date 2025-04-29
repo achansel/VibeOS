@@ -125,21 +125,56 @@ void terminal_scroll(void) {
 }
 
 void terminal_clear(void) {
-    terminal_row = 0;
-    terminal_column = 0;
+    uart_puts("DEBUG: Starting terminal_clear\n");
+    
+    // First, verify we can write to the VGA buffer
+    uart_puts("DEBUG: Testing VGA buffer write\n");
+    uint16_t test_value = vga_entry('X', terminal_color);
+    volatile uint16_t* test_ptr = (volatile uint16_t*)vga_buffer;
+    test_ptr[0] = test_value;
+    
+    // Verify the write
+    if (test_ptr[0] != test_value) {
+        uart_puts("ERROR: VGA buffer not writable\n");
+        asm volatile("hlt");
+    }
+    
+    uart_puts("DEBUG: VGA buffer verified\n");
+    
+    // Clear the screen with bounds checking
+    uart_puts("DEBUG: Starting screen clear\n");
     for (size_t y = 0; y < VGA_HEIGHT; y++) {
         for (size_t x = 0; x < VGA_WIDTH; x++) {
             const size_t index = y * VGA_WIDTH + x;
-            vga_buffer[index] = vga_entry(' ', terminal_color);
+            if (index < VGA_WIDTH * VGA_HEIGHT) {  // Safety check
+                test_ptr[index] = vga_entry(' ', terminal_color);
+            } else {
+                uart_puts("ERROR: VGA buffer index out of bounds\n");
+                asm volatile("hlt");
+            }
         }
     }
+    
+    uart_puts("DEBUG: Screen cleared\n");
+    
+    terminal_row = 0;
+    terminal_column = 0;
 }
 
 void terminal_initialize(void) {
+    uart_puts("DEBUG: Starting terminal_initialize\n");
+    
+    // Initialize terminal state
     terminal_row = 0;
     terminal_column = 0;
     terminal_color = vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
+    
+    uart_puts("DEBUG: Terminal state initialized\n");
+    
+    // Clear the screen
     terminal_clear();
+    
+    uart_puts("DEBUG: Terminal initialized successfully\n");
 }
 
 void terminal_putchar(char c) {
@@ -234,9 +269,15 @@ void kernel_main(uint32_t magic __attribute__((unused)), void* mb_info __attribu
     uart_puts("DEBUG: Starting kernel_main\n");
     
     // Initialize VGA
-    uart_puts("DEBUG: Initializing VGA\n");
+    uart_puts("DEBUG: Starting VGA initialization\n");
     
-   
+    // Verify VGA buffer address
+    uart_puts("DEBUG: Verifying VGA buffer address\n");
+    if ((uint32_t)vga_buffer != VGA_ADDRESS) {
+        uart_puts("ERROR: VGA buffer not at correct address\n");
+        asm volatile("hlt");
+    }
+    
     terminal_initialize();
     terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK));
     
@@ -249,17 +290,33 @@ void kernel_main(uint32_t magic __attribute__((unused)), void* mb_info __attribu
     terminal_writestring("and thats a great boot log\n");
     
     // Initialize command buffer
-    uart_puts("DEBUG: Initializing command buffer\n");
+    uart_puts("DEBUG: Starting command buffer initialization\n");
+    
+    // Initialize command length
+    uart_puts("DEBUG: Setting command length to 0\n");
     command_length = 0;
+    uart_puts("DEBUG: Command length initialized\n");
+    
+    // Clear command buffer with bounds checking
+    uart_puts("DEBUG: Starting command buffer clear\n");
+    volatile char* cmd_buf = (volatile char*)command_buffer;
     for (size_t i = 0; i < sizeof(command_buffer); i++) {
-        command_buffer[i] = '\0';
+        if (i < sizeof(command_buffer)) {
+            cmd_buf[i] = '\0';
+        } else {
+            uart_puts("ERROR: Command buffer index out of bounds\n");
+            asm volatile("hlt");
+        }
     }
+    uart_puts("DEBUG: Command buffer cleared\n");
     
     // Show prompt
     uart_puts("DEBUG: Showing prompt\n");
     terminal_writestring("> ");
+    uart_puts("DEBUG: Prompt shown\n");
     
     uart_puts("DEBUG: Entering main loop\n");
+    
     while (1) {
         // Show cursor
         size_t cursor_index = terminal_row * VGA_WIDTH + terminal_column;

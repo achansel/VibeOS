@@ -1,0 +1,47 @@
+# Build artifacts
+*.o
+*.bin
+*.elf
+*.iso
+obj/
+iso/
+
+# QEMU debug logs
+qemu_debug.log
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
+
+# Dependency directories
+deps/
+vendor/
+
+# Generated documentation
+docs/_build/
+docs/_static/
+docs/_templates/
+
+# Binary files
+*.bin
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Debug files
+*.debug
+*.gdb
+*.core
