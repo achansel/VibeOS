@@ -56,12 +56,28 @@ $(OBJ_DIR)/kernel/keyboard.o: src/kernel/keyboard.c | $(OBJ_DIR)
 $(OBJ_DIR)/kernel/uart.o: src/kernel/uart.c | $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
+# Compile GDT
+$(OBJ_DIR)/kernel/gdt.o: src/kernel/gdt.c | $(OBJ_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Compile Stack
+$(OBJ_DIR)/kernel/stack.o: src/kernel/stack.c | $(OBJ_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Compile GDT assembly
+$(OBJ_DIR)/kernel/gdt_asm.o: src/kernel/gdt_asm.s | $(OBJ_DIR)
+	$(ASM) $(ASFLAGS) $< -o $@
+
+# Compile Stack assembly
+$(OBJ_DIR)/kernel/stack_asm.o: src/kernel/stack_asm.s | $(OBJ_DIR)
+	$(ASM) $(ASFLAGS) $< -o $@
+
 # Compile bootloader
 $(OBJ_DIR)/boot/boot.o: src/boot/boot.asm | $(OBJ_DIR)
 	$(ASM) $(ASFLAGS) $< -o $@
 
 # Link kernel
-$(KERNEL): $(OBJ_DIR)/kernel/kernel.o $(OBJ_DIR)/kernel/terminal.o $(OBJ_DIR)/kernel/keyboard.o $(OBJ_DIR)/kernel/uart.o $(OBJ_DIR)/boot/boot.o
+$(KERNEL): $(OBJ_DIR)/kernel/kernel.o $(OBJ_DIR)/kernel/terminal.o $(OBJ_DIR)/kernel/keyboard.o $(OBJ_DIR)/kernel/uart.o $(OBJ_DIR)/kernel/gdt.o $(OBJ_DIR)/kernel/stack.o $(OBJ_DIR)/kernel/gdt_asm.o $(OBJ_DIR)/kernel/stack_asm.o $(OBJ_DIR)/boot/boot.o
 	$(LD) $(LDFLAGS) -o $@ $^
 
 # Create ISO directory structure

@@ -5,6 +5,8 @@
 #include "uart.h"
 #include "terminal.h"
 #include "keyboard.h"
+#include "gdt.h"
+#include "stack.h"
 
 
 // Command buffer
@@ -20,19 +22,37 @@ static size_t strlen(const char* str) {
     return len;
 }
 
+// Custom strcmp implementation
+static int strcmp(const char* s1, const char* s2) {
+    while (*s1 && (*s1 == *s2)) {
+        s1++;
+        s2++;
+    }
+    return *(unsigned char*)s1 - *(unsigned char*)s2;
+}
+
 void handle_command(void) {
     command_buffer[command_length] = '\0';
     
-    if (strlen(command_buffer) == 5 && 
-        command_buffer[0] == 'c' &&
-        command_buffer[1] == 'l' &&
-        command_buffer[2] == 'e' &&
-        command_buffer[3] == 'a' &&
-        command_buffer[4] == 'r') {
+    if (strcmp(command_buffer, "clear") == 0) {
         terminal_clear();
+    } else if (strcmp(command_buffer, "stack") == 0) {
+        print_kernel_stack();
+    } else if (strcmp(command_buffer, "gdt") == 0) {
+        verify_gdt();
+    } else if (strcmp(command_buffer, "poweroff") == 0) {
+        // Try ACPI shutdown first
+        outw(0x604, 0x2000);  // QEMU poweroff
+        // If that fails, try Bochs shutdown
+        outw(0xB004, 0x2000); // Bochs poweroff
+        // If that fails, try VirtualBox shutdown
+        outw(0x4004, 0x3400); // VirtualBox poweroff
     } else {
         terminal_writestring("\nUnknown command. Available commands:\n");
-        terminal_writestring("clear - Clear the screen\n");
+        terminal_writestring("clear     - Clear the screen\n");
+        terminal_writestring("stack     - Print kernel stack trace\n");
+        terminal_writestring("gdt       - Print GDT contents\n");
+        terminal_writestring("poweroff  - Shut down the system\n");
     }
     
     command_length = 0;
@@ -42,6 +62,10 @@ void kernel_main(uint32_t magic __attribute__((unused)), void* mb_info __attribu
     // Initialize UART first for debugging
     uart_init();
     uart_write_string("UART initialized\n");
+    
+    // Initialize GDT
+    init_gdt();
+    uart_write_string("GDT initialized\n");
     
     // Initialize keyboard
     keyboard_init();
@@ -63,6 +87,9 @@ void kernel_main(uint32_t magic __attribute__((unused)), void* mb_info __attribu
     terminal_writestring("--- this message was sent from the std vga device ---\n");
     terminal_writestring("and thats a great boot log\n");
     terminal_writestring("Press F1-F12 to switch between screens\n");
+    terminal_writestring("Type 'stack' to print kernel stack trace\n");
+    terminal_writestring("Type 'gdt' to print GDT contents\n");
+    terminal_writestring("Type 'poweroff' to shut down the system\n");
     uart_write_string("Welcome message printed\n");
     
     // Initialize command

@@ -236,6 +236,22 @@ void terminal_writestring(const char* data) {
     terminal_write(data, strlen(data));
 }
 
+void terminal_writehex(uint32_t value) {
+    const char* hex_chars = "0123456789ABCDEF";
+    char hex_str[11];  // "0x" + 8 hex digits + null terminator
+    hex_str[0] = '0';
+    hex_str[1] = 'x';
+    
+    // Convert each nibble to hex character
+    for (int i = 0; i < 8; i++) {
+        hex_str[9 - i] = hex_chars[(value >> (i * 4)) & 0xF];
+    }
+    
+    hex_str[10] = '\0';  // Null terminate the string
+    
+    terminal_writestring(hex_str);
+}
+
 void terminal_switch_screen(uint8_t screen_num) {
     if (screen_num >= NUM_SCREENS) {
         return;
