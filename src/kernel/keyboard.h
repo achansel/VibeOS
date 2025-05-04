@@ -40,6 +40,18 @@ enum key_scancodes {
     KEY_Z = 0x2C,
     KEY_ENTER = 0x1C,
     KEY_BACKSPACE = 0x0E,
+    KEY_F1 = 0x3B,
+    KEY_F2 = 0x3C,
+    KEY_F3 = 0x3D,
+    KEY_F4 = 0x3E,
+    KEY_F5 = 0x3F,
+    KEY_F6 = 0x40,
+    KEY_F7 = 0x41,
+    KEY_F8 = 0x42,
+    KEY_F9 = 0x43,
+    KEY_F10 = 0x44,
+    KEY_F11 = 0x57,
+    KEY_F12 = 0x58,
 };
 
 // Keyboard functions

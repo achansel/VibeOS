@@ -8,7 +8,7 @@
 #define VGA_WIDTH 80
 #define VGA_HEIGHT 25
 #define VGA_ADDRESS 0xB8000
-#define NUM_SCREENS 3
+#define NUM_SCREENS 12
 
 // VGA color constants
 enum vga_color {

@@ -62,7 +62,7 @@ void kernel_main(uint32_t magic __attribute__((unused)), void* mb_info __attribu
     terminal_writestring("Hello from kernel_main()\n");
     terminal_writestring("--- this message was sent from the std vga device ---\n");
     terminal_writestring("and thats a great boot log\n");
-    terminal_writestring("Press 1, 2, or 3 to switch between screens\n");
+    terminal_writestring("Press F1-F12 to switch between screens\n");
     uart_write_string("Welcome message printed\n");
     
     // Initialize command
@@ -81,11 +81,27 @@ void kernel_main(uint32_t magic __attribute__((unused)), void* mb_info __attribu
             
             if (!keyboard_is_released(scancode)) {  // Only process key press, not release
                 char ascii = keyboard_scancode_to_ascii(scancode);
+                uint8_t keycode = keyboard_get_keycode(scancode);
                 
-                // Handle screen switching
-                if (ascii >= '1' && ascii <= '3') {
-                    uint8_t screen_num = ascii - '1';
-                    terminal_switch_screen(screen_num);
+                // Handle screen switching with F1-F12
+                if (keycode >= KEY_F1 && keycode <= KEY_F10) {
+                    uint8_t screen_num = keycode - KEY_F1;
+                    if (screen_num < NUM_SCREENS) {
+                        terminal_switch_screen(screen_num);
+                    }
+                    continue;
+                }
+                // Handle F11 and F12 separately since they have different scancodes
+                else if (keycode == KEY_F11) {
+                    if (10 < NUM_SCREENS) {
+                        terminal_switch_screen(10);
+                    }
+                    continue;
+                }
+                else if (keycode == KEY_F12) {
+                    if (11 < NUM_SCREENS) {
+                        terminal_switch_screen(11);
+                    }
                     continue;
                 }
                 
